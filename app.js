@@ -25,4 +25,60 @@ if (app.get('env') === 'development') {
   });
 }
 
+app.post("/signup", function(req, res) {
+    var userParams = req.body.user; // name, email, password, passwordConfirmation
+
+    if (!userParams.email) {
+      return res.status(401).send({message: "Missing Email"});
+    }
+    if (!userParams.password) {
+      return res.status(401).send({message: "Missing Password"});
+    }
+    if (userParams.password !== userParams.passwordConfirmation) {
+      return res.status(401).send({message: "Incorrect Password"});
+    }
+
+      User.findOne({ email: userParams.email }, function(err, user) {
+    // validation for no user
+    if (user) {
+      return res.status(401).send({message: "Email already taken."});
+    }
+
+    var userObject = new User(req.body.user);
+
+    userObject.save(function(err, user) {
+      if(err){
+        return res.status(401).send({message: err.errmsg});
+      } else {
+        return res.status(200).send({message: "user created"});
+      }
+    });
+  })
+
+app.post("/signin", function(req, res) {
+    var userParams = req.body.user;
+    // validation for password, email
+    if (!userParams.email) {
+      return res.status(401).send({message: "Missing Email"});
+    }
+    if (!userParams.password) {
+      return res.status(401).send({message: "Missing Password"});
+    }
+
+    User.findOne({ email: userParams.email }, function(err, user) {
+      // validation for no user
+      if (!user) {return res.status(404).send({message: "No User Found"});}
+
+      user.authenticate(userParams.password, function(err, isMatch) {
+        if (err) throw err;
+
+        if (isMatch) {
+          return res.status(200).send({message: "Valid Credentials !"});
+        } else {
+          return res.status(401).send({message: "The credentials provided do not correspond to a registered user"});
+        };
+      });
+    });
+  });
+
 app.listen(3000);
